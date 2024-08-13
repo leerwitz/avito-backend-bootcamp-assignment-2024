@@ -1,9 +1,13 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
+	"io"
 	"net/http"
 	"time"
+
+	"avitoBootcamp/internal/queries"
 
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -19,11 +23,29 @@ type CustomClaims struct {
 	jwt.RegisteredClaims
 }
 
+type House struct {
+	Id        int64  `json:"id"`
+	Address   string `json:"address"`
+	Year      int    `json:"year"`
+	Developer string `json:"developer"`
+	CreatedAt string `json:"created_at"`
+	UpdateAt  string `json:"update_at"`
+}
+
+type Flat struct {
+	Id      int64  `json:"id"`
+	HouseId int64  `json:"house_id"`
+	Price   int64  `json:"price"`
+	Rooms   int    `json:"rooms"`
+	Status  string `json:"status"`
+}
+
 func DummyLoginHandler(w http.ResponseWriter, r *http.Request) {
 	userType := r.URL.Query().Get(`user_type`)
 
 	if userType != `client` && userType != `moderator` {
 		http.Error(w, "No such user type", http.StatusInternalServerError)
+		return
 	}
 
 	expirationTime := time.Now().Add(15 * time.Minute)
@@ -38,6 +60,7 @@ func DummyLoginHandler(w http.ResponseWriter, r *http.Request) {
 	tokenStr, err := token.SignedString(jwtKey)
 	if err != nil {
 		http.Error(w, "Could not create token", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-type", "application/json")
@@ -57,12 +80,89 @@ func AuthorizationMiddleware(next http.Handler, onlyModerator bool) http.Handler
 
 		if err != nil || !token.Valid {
 			http.Error(w, "User unauthorized", http.StatusUnauthorized)
+			return
 		}
 
 		if onlyModerator && claims.Type != `moderator` {
 			http.Error(w, "You are not a moderator", http.StatusUnauthorized)
+			return
 		}
 
 		next.ServeHTTP(w, r)
+	})
+}
+
+func HouseCreateHandler(db *sql.DB) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		var house House
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		defer r.Body.Close()
+
+		if err := json.Unmarshal(body, &house); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		house.CreatedAt = time.Now().UTC().Format(`2017-07-21T17:32:28.000Z`)
+		query := `INSERT INTO house (address, year, developer, created_at) 
+		VALUES($1, $2, $3, $4) RETURNING id`
+
+		if err := db.QueryRow(query, house.Address, house.Year, house.Developer, house.CreatedAt).Scan(&house.Id); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		jsonResponse, err := json.Marshal(house)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set(`Content-Type`, `application/json`)
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonResponse)
+
+	})
+}
+
+func FlatCreateHandler(db *sql.DB) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var flat Flat
+		body, err := io.ReadAll(r.Body)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if err := json.Unmarshal(body, &flat); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		flat.Status = `created`
+
+		if err := queries.Insert(db, &flat, `flat`); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		jsonResponse, err := json.Marshal(flat)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set(`Content-Type`, `application/json`)
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonResponse)
 	})
 }

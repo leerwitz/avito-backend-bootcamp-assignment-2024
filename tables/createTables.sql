@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS house (
     address VARCHAR(1000) NOT NULL,
     "year" INTEGER NOT NULL CHECK ("year" >= 0),
     developer VARCHAR(1000),
-    created_at DATE,
-    update_at DATE
+    created_at VARCHAR(255),
+    update_at VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS flat (
