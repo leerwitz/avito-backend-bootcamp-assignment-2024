@@ -10,10 +10,14 @@ CREATE TABLE IF NOT EXISTS house (
 );
 
 CREATE TABLE IF NOT EXISTS flat (
-    id INTEGER NOT NULL CHECK (id >= 1),
+    id SERIAL PRIMARY KEY,
     house_id INTEGER NOT NULL REFERENCES house(id),
     price INTEGER NOT NULL CHECK (price >= 0),
     rooms INTEGER NOT NULL CHECK (rooms >= 1),
-    "status" flat_status,
-    PRIMARY KEY (house_id, id) 
+    flat_num INTEGER NOT NULL CHECK (flat_num >= 1),
+    "status" flat_status,   
+    CONSTRAINT unique_house_flat UNIQUE (house_id, flat_num)
 );
+
+CREATE INDEX idx_house_id ON flat (house_id);
+

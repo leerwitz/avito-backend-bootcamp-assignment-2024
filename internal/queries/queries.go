@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 type House struct {
@@ -28,8 +30,8 @@ func UpdateAtHouse(db *sql.DB, houseId int64) error {
 func Insert(db *sql.DB, value interface{}, table string) error {
 	v := reflect.ValueOf(value)
 
-	if v.Kind() != reflect.Struct {
-		return fmt.Errorf(`value must be a struct`)
+	if v.Kind() != reflect.Ptr {
+		return fmt.Errorf(`value must be a pointer to a struct`)
 	}
 
 	vType := v.Type()

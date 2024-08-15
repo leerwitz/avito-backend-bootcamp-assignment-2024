@@ -2,3 +2,4 @@
 build/
 *.gch
 postgres.session.sql
+*.txt

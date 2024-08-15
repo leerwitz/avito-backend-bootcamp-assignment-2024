@@ -216,7 +216,8 @@ paths:
               required:
                 - house_id
                 - price
-                - room
+                - rooms
+                - flat_num  
               properties:
                 house_id:
                   $ref: '#/components/schemas/HouseId'
@@ -224,6 +225,11 @@ paths:
                   $ref: '#/components/schemas/Price'
                 rooms:
                   $ref: '#/components/schemas/Rooms'
+                flat_num:  
+                  type: integer
+                  description: Номер квартиры
+                  example: 101
+                  minimum: 1
       responses:
         '200':
           description: Успешно создана квартира
@@ -252,8 +258,7 @@ paths:
               type: object
               required:
                 - id
-                - price
-                - room
+                - status
               properties:
                 id:
                   $ref: '#/components/schemas/FlatId'
@@ -373,6 +378,7 @@ components:
         - price
         - rooms
         - status
+        - flat_num  
       properties:
         id:
           $ref: '#/components/schemas/FlatId'
@@ -384,6 +390,11 @@ components:
           $ref: '#/components/schemas/Rooms'
         status:
           $ref: '#/components/schemas/Status'
+        flat_num:  
+          type: integer
+          description: Номер квартиры
+          example: 101
+          minimum: 1
     Status:
       type: string
       enum: [created, approved, declined, on moderation]
