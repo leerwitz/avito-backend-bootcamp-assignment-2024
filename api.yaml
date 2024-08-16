@@ -264,6 +264,10 @@ paths:
                   $ref: '#/components/schemas/FlatId'
                 status:
                   $ref: '#/components/schemas/Status'
+                moderator_id:
+                  type: integer
+                  description: Идентификатор модератора, обновляющего квартиру
+                  example: 12345
       responses:
         '200':
           description: Успешно обновлена квартира
@@ -395,6 +399,11 @@ components:
           description: Номер квартиры
           example: 101
           minimum: 1
+        moderator_id:
+          type: integer
+          description: Идентификатор модератора
+          example: 12345
+          nullable: true
     Status:
       type: string
       enum: [created, approved, declined, on moderation]
