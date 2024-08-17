@@ -15,6 +15,7 @@ WORKDIR /app
 RUN apk add --no-cache bash
 
 COPY --from=builder /app/main .
+COPY tables ./tables
 
 EXPOSE 8080
 

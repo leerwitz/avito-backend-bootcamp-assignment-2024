@@ -1,4 +1,9 @@
--- CREATE TYPE flat_status AS ENUM ('created', 'approved', 'declined', 'on moderation');
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'flat_status') THEN
+        CREATE TYPE flat_status AS ENUM ('created', 'approved', 'declined', 'on moderation');
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS house (
     id SERIAL PRIMARY KEY,
@@ -20,5 +25,10 @@ CREATE TABLE IF NOT EXISTS flat (
     CONSTRAINT unique_house_flat UNIQUE (house_id, flat_num)
 );
 
--- CREATE INDEX idx_house_id ON flat (house_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'idx_house_id' AND relkind = 'i') THEN
+        CREATE INDEX idx_house_id ON flat (house_id);
+    END IF;
+END $$;
 

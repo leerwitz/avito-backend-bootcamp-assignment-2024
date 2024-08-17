@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	host       = "10.0.2.15"
+	host       = "db"
 	port       = 5432
 	user       = "postgres"
 	password   = "postgres"
@@ -47,7 +47,7 @@ func New() (*Storage, error) {
 }
 
 func (storage *Storage) init() error {
-	initQuery, err := storage.readSqlQuery(`../tables/createTables.sql`)
+	initQuery, err := storage.readSqlQuery(`tables/createTables.sql`)
 
 	if err != nil {
 		return err
@@ -57,15 +57,15 @@ func (storage *Storage) init() error {
 		return err
 	}
 
-	// fillQuery, err := storage.readSqlQuery(`../tables/fillTables.sql`)
+	fillQuery, err := storage.readSqlQuery(`tables/fillTables.sql`)
 
-	// if err != nil {
-	// 	return err
-	// }
+	if err != nil {
+		return err
+	}
 
-	// if _, err := storage.Db.Query(fillQuery); err != nil {
-	// 	return err
-	// }
+	if _, err := storage.Db.Query(fillQuery); err != nil {
+		return err
+	}
 
 	return nil
 }

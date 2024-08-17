@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -90,14 +91,6 @@ func HouseCreateHandler(db storage.Database) http.Handler {
 			return
 		}
 
-		// house.CreatedAt = time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
-		// query := `INSERT INTO house (address, year, developer, created_at)
-		// VALUES($1, $2, $3, $4) RETURNING id`
-
-		// if err := db.QueryRow(query, house.Address, house.Year, house.Developer, house.CreatedAt).Scan(&house.Id); err != nil {
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
 		house, err = db.CreateHouse(house)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -118,7 +111,7 @@ func HouseCreateHandler(db storage.Database) http.Handler {
 	})
 }
 
-func FlatCreateHandler(db storage.Database) http.Handler {
+func FlatCreateHandler(db storage.Database, cache storage.Cache) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var flat models.Flat
 		body, err := io.ReadAll(r.Body)
@@ -134,16 +127,6 @@ func FlatCreateHandler(db storage.Database) http.Handler {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
-		// flat.Status = `created`
-
-		// query := `INSERT INTO flat (house_id, price, rooms, flat_num, status)
-		// VALUES($1, $2, $3, $4, $5) RETURNING id`
-
-		// if err := db.QueryRow(query, flat.HouseId, flat.Price, flat.Rooms, flat.Num, flat.Status).Scan(&flat.Id); err != nil {
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
 
 		flat, err = db.CreateFlat(flat)
 
@@ -159,6 +142,11 @@ func FlatCreateHandler(db storage.Database) http.Handler {
 			return
 		}
 
+		cache.DeleteFlatsByHouseId(flat.HouseId, `moderator`)
+		if flat.Status == `approved` {
+			cache.DeleteFlatsByHouseId(flat.HouseId, `client`)
+		}
+
 		if err := db.UpdateAtHouseLastFlatTime(flat.HouseId); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -170,7 +158,7 @@ func FlatCreateHandler(db storage.Database) http.Handler {
 	})
 }
 
-func FlatUpdateHandler(db storage.Database) http.Handler {
+func FlatUpdateHandler(db storage.Database, cache storage.Cache) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		var flat models.Flat
@@ -187,29 +175,6 @@ func FlatUpdateHandler(db storage.Database) http.Handler {
 			return
 		}
 
-		// var currStatus string
-		// var currModeratorId *int
-
-		// query := `SELECT status, moderator_id FROM flat WHERE id = $1`
-		// err = db.QueryRow(query, flat.Id).Scan(&currStatus, &currModeratorId)
-		// if err != nil {
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
-
-		// if currStatus == `on moderation` && (currModeratorId == nil || *currModeratorId != flat.ModeratorId) {
-		// 	http.Error(w, `This flat has already been moderated by another moderator`, http.StatusUnauthorized)
-		// 	return
-		// }
-
-		// if flat.Status == `on moderation` {
-		// 	query = `UPDATE flat SET status = $1, moderator_id = $2 WHERE id = $3 RETURNING price, rooms, house_id, flat_num`
-		// 	err = db.QueryRow(query, flat.Status, flat.ModeratorId, flat.Id).Scan(&flat.Price, &flat.Rooms, &flat.HouseId, &flat.Num)
-		// } else {
-		// 	query = `UPDATE flat SET status = $1 WHERE id = $2 RETURNING price, rooms, house_id, flat_num, moderator_id`
-		// 	err = db.QueryRow(query, flat.Status, flat.Id).Scan(&flat.Price, &flat.Rooms, &flat.HouseId, &flat.Num, &flat.ModeratorId)
-		// }
-
 		flat, err = db.UpdateFlat(flat)
 
 		if err != nil {
@@ -224,13 +189,18 @@ func FlatUpdateHandler(db storage.Database) http.Handler {
 			return
 		}
 
+		cache.DeleteFlatsByHouseId(flat.HouseId, `moderator`)
+		if flat.Status == `approved` {
+			cache.DeleteFlatsByHouseId(flat.HouseId, `client`)
+		}
+
 		w.Header().Set(`Content-Type`, `application/json`)
 		w.WriteHeader(http.StatusOK)
 		w.Write(jsonResponse)
 	})
 }
 
-func GetFlatsInHouseHandler(db storage.Database) http.Handler {
+func GetFlatsInHouseHandler(db storage.Database, cache storage.Cache) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		parameters := mux.Vars(r)
 
@@ -248,39 +218,26 @@ func GetFlatsInHouseHandler(db storage.Database) http.Handler {
 			return
 		}
 
-		// query := `SELECT id, house_id, price, rooms, status, flat_num FROM flat  WHERE house_id = $1 `
+		jsonFlats, err := cache.GetFlatsByHouseID(houseId, userType)
 
-		// if userType != `moderator` {
-		// 	query += ` AND status = 'approved'`
-		// }
+		if err == nil {
+			slog.Info(`Flats gets from cache`, "houseID", houseId, "userType", userType)
+			w.Header().Set(`Content-Type`, `application/json`)
+			w.WriteHeader(http.StatusOK)
+			w.Write(jsonFlats)
 
-		// rows, err := db.Query(query, houseId)
-
-		// if err != nil {
-		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 	return
-		// }
-
-		// defer rows.Close()
-
-		// var flats []models.Flat
-
-		// for rows.Next() {
-		// 	var currFlat models.Flat
-
-		// 	if err := rows.Scan(&currFlat.Id, &currFlat.HouseId, &currFlat.Price, &currFlat.Rooms, &currFlat.Status, &currFlat.Num); err != nil {
-		// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		// 		return
-		// 	}
-
-		// 	flats = append(flats, currFlat)
-		// }
+			return
+		}
 
 		flats, err := db.GetFlatsByHouseID(houseId, userType)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		if err := cache.PutFlatsByHouseID(flats, houseId, userType); err != nil {
+			slog.Error("Failed to cache flats", "houseID", houseId, "userType", userType, "error", err)
 		}
 
 		w.Header().Set(`Content-Type`, `application/json`)

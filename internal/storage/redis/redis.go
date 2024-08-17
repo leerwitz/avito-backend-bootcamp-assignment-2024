@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -16,7 +17,7 @@ type RedisCache struct {
 
 func New() (*RedisCache, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:     "redis:6379",
+		Addr:     "redis:6379", // для docker-compose поменять addr на redis:6379 лоуально localhost:6379
 		Password: "",
 		DB:       0,
 	})
@@ -35,29 +36,57 @@ func (r *RedisCache) PutFlatsByHouseID(flats []models.Flat, houseId int64, userT
 	jsonFlats, err := json.Marshal(flats)
 
 	if err != nil {
+		slog.Error("Failed to marshal flats", "error", err)
 		return err
 	}
 
-	keyRequest := fmt.Sprintf(`houseID: %d userType: %s`, houseId, userType)
+	keyRequest := fmt.Sprintf(`houseID:%d,userType:%s`, houseId, userType)
 	request := r.Client.Set(ctx, keyRequest, jsonFlats, 5*time.Minute)
 
 	if err := request.Err(); err != nil {
+		slog.Error("Failed to set flats in cache", "error", err)
 		return err
 	}
+
+	slog.Info("Successfully cached flats", "key", keyRequest)
 
 	return nil
 }
 
-func (r *RedisCache) GetFlatsByHouseID(flats []models.Flat, houseId int64, userType string) ([]byte, error) {
+func (r *RedisCache) GetFlatsByHouseID(houseId int64, userType string) ([]byte, error) {
 	ctx := context.Background()
-	keyRequest := fmt.Sprintf(`houseID: %d userType: %s`, houseId, userType)
+	keyRequest := fmt.Sprintf(`houseID:%d,userType:%s`, houseId, userType)
 	request := r.Client.Get(ctx, keyRequest)
 
 	if err := request.Err(); err != nil {
+		slog.Error("Failed to get request from the cache", "error", err)
 		return nil, err
 	}
 
-	data, _ := request.Result()
+	data, err := request.Result()
+	if err != nil {
+		slog.Error("Failed to get result from the cache request", "error", err)
+		return nil, err
+	}
+
+	// var flats []models.Flat
+	// if err := json.Unmarshal([]byte(data), &flats); err != nil {
+	// 	slog.Error("Failed to unmarshal flats data", "key", keyRequest, "error", err)
+	// 	return nil, err
+	// }
+
+	slog.Info(`Successfully get flats from cache`, `key`, keyRequest)
 
 	return []byte(data), nil
+}
+
+func (r *RedisCache) DeleteFlatsByHouseId(houseId int64, userType string) {
+	ctx := context.Background()
+	key := fmt.Sprintf(`houseID:%d,userType:%s`, houseId, userType)
+
+	if err := r.Client.Del(ctx, key).Err(); err != nil {
+		slog.Info("Error deleting key:", err)
+	} else {
+		slog.Info("Key deleting successfully")
+	}
 }
