@@ -21,9 +21,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    # volumes:
-    #   - postgres_data:/var/lib/postgresql/data
-    #   - ./tables:/docker-entrypoint-initdb.d
 
   web:
     build: ./
@@ -34,5 +31,3 @@ services:
       - "8080:8080" 
     command: ["./main"]
 
-# volumes:
-#   postgres_data:

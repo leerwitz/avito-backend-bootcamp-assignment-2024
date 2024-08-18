@@ -1,7 +1,6 @@
 package router
 
 import (
-	"avitoBootcamp/internal/handlers"
 	"avitoBootcamp/internal/models"
 	"avitoBootcamp/internal/storage/mocks"
 	"bytes"
@@ -15,29 +14,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 )
-
-func performLogin(userType string) (string, error) {
-	loginReq, err := http.NewRequest("GET", "/dummyLogin?user_type="+userType, nil)
-	if err != nil {
-		return "", err
-	}
-
-	loginRR := httptest.NewRecorder()
-	loginHandler := http.HandlerFunc(handlers.DummyLoginHandler)
-	loginHandler.ServeHTTP(loginRR, loginReq)
-
-	if loginRR.Code != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code: %d", loginRR.Code)
-	}
-
-	var tokenResponse models.AuthorizationToken
-	err = json.Unmarshal(loginRR.Body.Bytes(), &tokenResponse)
-	if err != nil {
-		return "", err
-	}
-
-	return tokenResponse.Token, nil
-}
 
 func TestGetFlatsInHouseHandler(t *testing.T) {
 
@@ -116,7 +92,7 @@ func TestGetFlatsInHouseHandler(t *testing.T) {
 
 			var token string
 			if tc.authorized {
-				token, _ = performLogin(tc.userType)
+				token, _ = PerformLogin(tc.userType)
 			}
 			req, err := http.NewRequest("GET", fmt.Sprintf("/house/%d", tc.houseId), nil)
 			assert.NoError(t, err)
@@ -217,7 +193,7 @@ func TestFlatCreateHandler(t *testing.T) {
 
 			var token string
 			if tc.authorized {
-				token, _ = performLogin("moderator")
+				token, _ = PerformLogin("moderator")
 			}
 			reqBody, _ := json.Marshal(tc.inputFlat)
 			req, err := http.NewRequest("POST", "/flat/create", bytes.NewBuffer(reqBody))
@@ -318,7 +294,7 @@ func TestHouseCreateHandler(t *testing.T) {
 
 			var token string
 			if tc.authorized {
-				token, _ = performLogin("moderator")
+				token, _ = PerformLogin("moderator")
 			}
 
 			var body []byte
@@ -431,7 +407,7 @@ func TestFlatUpdateHandler(t *testing.T) {
 
 			var token string
 			if tc.authorized {
-				token, _ = performLogin("moderator")
+				token, _ = PerformLogin("moderator")
 			}
 
 			var body []byte

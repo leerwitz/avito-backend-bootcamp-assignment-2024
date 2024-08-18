@@ -2,8 +2,12 @@ package router
 
 import (
 	"avitoBootcamp/internal/handlers"
+	"avitoBootcamp/internal/models"
 	"avitoBootcamp/internal/storage"
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -26,4 +30,27 @@ func New(database storage.Database, cache storage.Cache) http.Handler {
 	}).Handler(router)
 
 	return handler
+}
+
+func PerformLogin(userType string) (string, error) {
+	loginReq, err := http.NewRequest("GET", "/dummyLogin?user_type="+userType, nil)
+	if err != nil {
+		return "", err
+	}
+
+	loginRR := httptest.NewRecorder()
+	loginHandler := http.HandlerFunc(handlers.DummyLoginHandler)
+	loginHandler.ServeHTTP(loginRR, loginReq)
+
+	if loginRR.Code != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code: %d", loginRR.Code)
+	}
+
+	var tokenResponse models.AuthorizationToken
+	err = json.Unmarshal(loginRR.Body.Bytes(), &tokenResponse)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenResponse.Token, nil
 }

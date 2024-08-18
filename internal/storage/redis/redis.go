@@ -17,7 +17,22 @@ type RedisCache struct {
 
 func New() (*RedisCache, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:     "redis:6379", // для docker-compose поменять addr на redis:6379 лоуально localhost:6379
+		Addr:     "redis:6379", // для docker-compose поменять addr на redis:6379 локально localhost:6379
+		Password: "",
+		DB:       0,
+	})
+
+	_, err := client.Ping(context.Background()).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	return &RedisCache{Client: client}, nil
+}
+
+func NewForTest() (*RedisCache, error) {
+	client := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379", // для docker-compose поменять addr на redis:6379 локально localhost:6379
 		Password: "",
 		DB:       0,
 	})

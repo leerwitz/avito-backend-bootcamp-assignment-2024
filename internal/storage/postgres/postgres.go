@@ -19,6 +19,8 @@ const (
 	dbname     = "avitobootcamp"
 	sslmode    = "disable"
 	driverName = "postgres"
+	hostTest   = `localhost`
+	portTest   = 5433
 )
 
 type Storage struct {
@@ -26,6 +28,35 @@ type Storage struct {
 }
 
 func New() (*Storage, error) {
+
+	storage, err := Connect()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := storage.init(); err != nil {
+		return storage, err
+	}
+
+	return storage, nil
+}
+
+func ConnectForTest() (*Storage, error) {
+	databaseName := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%d sslmode=%s", user, password, dbname, hostTest, portTest, sslmode)
+	database, err := sql.Open(driverName, databaseName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := database.Ping(); err != nil {
+		return nil, err
+	}
+
+	return &Storage{Db: database}, nil
+}
+
+func Connect() (*Storage, error) {
 	databaseName := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%d sslmode=%s", user, password, dbname, host, port, sslmode)
 	database, err := sql.Open(driverName, databaseName)
 
@@ -37,13 +68,7 @@ func New() (*Storage, error) {
 		return nil, err
 	}
 
-	storage := &Storage{Db: database}
-
-	if err := storage.init(); err != nil {
-		return storage, err
-	}
-
-	return storage, nil
+	return &Storage{Db: database}, nil
 }
 
 func (storage *Storage) init() error {
@@ -87,10 +112,11 @@ func (storage *Storage) readSqlQuery(source string) (string, error) {
 }
 
 func (storage *Storage) GetFlatsByHouseID(houseId int64, userType string) ([]models.Flat, error) {
-	query := `SELECT id, house_id, price, rooms, status, flat_num FROM flat  WHERE house_id = $1 `
+	query := `SELECT id, house_id, price, rooms, status, moderator_id, flat_num FROM flat  WHERE house_id = $1 `
 
 	if userType != `moderator` {
-		query += ` AND status = 'approved'`
+		query = `SELECT id, house_id, price, rooms, status, moderator_id, flat_num FROM flat
+		WHERE house_id = $1  AND "status" = 'approved';`
 	}
 
 	rows, err := storage.Db.Query(query, houseId)
@@ -105,9 +131,15 @@ func (storage *Storage) GetFlatsByHouseID(houseId int64, userType string) ([]mod
 
 	for rows.Next() {
 		var currFlat models.Flat
-
-		if err := rows.Scan(&currFlat.Id, &currFlat.HouseId, &currFlat.Price, &currFlat.Rooms, &currFlat.Status, &currFlat.Num); err != nil {
+		var currModeratorId *int
+		if err := rows.Scan(&currFlat.Id, &currFlat.HouseId, &currFlat.Price, &currFlat.Rooms, &currFlat.Status, &currModeratorId, &currFlat.Num); err != nil {
 			return nil, err
+		}
+
+		if currModeratorId != nil {
+			currFlat.ModeratorId = *currModeratorId
+		} else {
+			currFlat.ModeratorId = 0
 		}
 
 		flats = append(flats, currFlat)
@@ -119,10 +151,10 @@ func (storage *Storage) GetFlatsByHouseID(houseId int64, userType string) ([]mod
 func (storage *Storage) CreateFlat(flat models.Flat) (models.Flat, error) {
 	flat.Status = `created`
 
-	query := `INSERT INTO flat (house_id, price, rooms, flat_num, status) 
-	VALUES($1, $2, $3, $4, $5) RETURNING id`
+	query := `INSERT INTO flat (house_id, price, rooms, flat_num, status, moderator_id) 
+	VALUES($1, $2, $3, $4, $5, $6) RETURNING id`
 
-	if err := storage.Db.QueryRow(query, flat.HouseId, flat.Price, flat.Rooms, flat.Num, flat.Status).Scan(&flat.Id); err != nil {
+	if err := storage.Db.QueryRow(query, flat.HouseId, flat.Price, flat.Rooms, flat.Num, flat.Status, flat.ModeratorId).Scan(&flat.Id); err != nil {
 		return flat, err
 	}
 
@@ -160,7 +192,7 @@ func (storage *Storage) UpdateFlat(flat models.Flat) (models.Flat, error) {
 	}
 
 	if currStatus == `on moderation` && (currModeratorId == nil || *currModeratorId != flat.ModeratorId) {
-		return flat, err
+		return models.Flat{Id: -1}, err
 	}
 
 	if flat.Status == `on moderation` {
@@ -169,17 +201,15 @@ func (storage *Storage) UpdateFlat(flat models.Flat) (models.Flat, error) {
 	} else {
 		query = `UPDATE flat SET status = $1 WHERE id = $2 RETURNING price, rooms, house_id, flat_num, moderator_id`
 		err = storage.Db.QueryRow(query, flat.Status, flat.Id).Scan(&flat.Price, &flat.Rooms, &flat.HouseId, &flat.Num, &currModeratorId)
+		if currModeratorId != nil {
+			flat.ModeratorId = *currModeratorId
+		} else {
+			flat.ModeratorId = 0
+		}
 	}
 
 	if err != nil {
 		return flat, err
-	}
-
-	if currModeratorId != nil {
-		flat.ModeratorId = *currModeratorId
-	} else {
-		flat.ModeratorId = 0
-
 	}
 
 	return flat, nil

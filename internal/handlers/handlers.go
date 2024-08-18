@@ -23,6 +23,7 @@ func DummyLoginHandler(w http.ResponseWriter, r *http.Request) {
 	userType := r.URL.Query().Get(`user_type`)
 
 	if userType != `client` && userType != `moderator` {
+		w.Header().Set("Retry-After", "3")
 		http.Error(w, "No such user type", http.StatusInternalServerError)
 		return
 	}
@@ -38,6 +39,8 @@ func DummyLoginHandler(w http.ResponseWriter, r *http.Request) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenStr, err := token.SignedString([]byte(jwtKey))
 	if err != nil {
+
+		w.Header().Set("Retry-After", "3")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -58,11 +61,13 @@ func AuthorizationMiddleware(next http.Handler, onlyModerator bool) http.Handler
 		})
 
 		if err != nil || !token.Valid {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
 		if onlyModerator && claims.Type != `moderator` {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, "You are not a moderator", http.StatusUnauthorized)
 			return
 		}
@@ -79,6 +84,7 @@ func HouseCreateHandler(db storage.Database) http.Handler {
 		var house models.House
 
 		if err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -87,12 +93,14 @@ func HouseCreateHandler(db storage.Database) http.Handler {
 
 		if err := json.Unmarshal(body, &house); err != nil {
 
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		house, err = db.CreateHouse(house)
 		if err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -100,6 +108,7 @@ func HouseCreateHandler(db storage.Database) http.Handler {
 		jsonResponse, err := json.Marshal(house)
 
 		if err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -117,6 +126,7 @@ func FlatCreateHandler(db storage.Database, cache storage.Cache) http.Handler {
 		body, err := io.ReadAll(r.Body)
 
 		if err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -124,6 +134,7 @@ func FlatCreateHandler(db storage.Database, cache storage.Cache) http.Handler {
 		defer r.Body.Close()
 
 		if err := json.Unmarshal(body, &flat); err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -131,6 +142,7 @@ func FlatCreateHandler(db storage.Database, cache storage.Cache) http.Handler {
 		flat, err = db.CreateFlat(flat)
 
 		if err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -138,6 +150,7 @@ func FlatCreateHandler(db storage.Database, cache storage.Cache) http.Handler {
 		jsonResponse, err := json.Marshal(flat)
 
 		if err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -148,6 +161,7 @@ func FlatCreateHandler(db storage.Database, cache storage.Cache) http.Handler {
 		}
 
 		if err := db.UpdateAtHouseLastFlatTime(flat.HouseId); err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -164,6 +178,7 @@ func FlatUpdateHandler(db storage.Database, cache storage.Cache) http.Handler {
 		var flat models.Flat
 
 		if err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -171,13 +186,22 @@ func FlatUpdateHandler(db storage.Database, cache storage.Cache) http.Handler {
 		defer r.Body.Close()
 
 		if err := json.Unmarshal(body, &flat); err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		flat, err = db.UpdateFlat(flat)
 
+		if flat.Id == -1 {
+			w.Header().Set("Retry-After", "3")
+			http.Error(w, `This apartment is being moderated by another moderator`, http.StatusUnauthorized)
+
+		}
+
 		if err != nil {
+
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -185,6 +209,7 @@ func FlatUpdateHandler(db storage.Database, cache storage.Cache) http.Handler {
 		jsonResponse, err := json.Marshal(flat)
 
 		if err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -207,6 +232,7 @@ func GetFlatsInHouseHandler(db storage.Database, cache storage.Cache) http.Handl
 		houseId, err := strconv.ParseInt(parameters[`id`], 10, 64)
 
 		if err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -214,6 +240,7 @@ func GetFlatsInHouseHandler(db storage.Database, cache storage.Cache) http.Handl
 		userType, ok := r.Context().Value(`userType`).(string)
 
 		if !ok {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, `could not get a user type`, http.StatusInternalServerError)
 			return
 		}
@@ -232,6 +259,7 @@ func GetFlatsInHouseHandler(db storage.Database, cache storage.Cache) http.Handl
 		flats, err := db.GetFlatsByHouseID(houseId, userType)
 
 		if err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -244,6 +272,7 @@ func GetFlatsInHouseHandler(db storage.Database, cache storage.Cache) http.Handl
 		w.WriteHeader(http.StatusOK)
 
 		if err := json.NewEncoder(w).Encode(flats); err != nil {
+			w.Header().Set("Retry-After", "3")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
