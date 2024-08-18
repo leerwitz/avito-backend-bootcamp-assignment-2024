@@ -17,7 +17,7 @@ type RedisCache struct {
 
 func New() (*RedisCache, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:     "redis:6379", // для docker-compose поменять addr на redis:6379 локально localhost:6379
+		Addr:     "redis:6379",
 		Password: "",
 		DB:       0,
 	})
@@ -32,7 +32,7 @@ func New() (*RedisCache, error) {
 
 func NewForTest() (*RedisCache, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379", // для docker-compose поменять addr на redis:6379 локально localhost:6379
+		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 	})
@@ -83,12 +83,6 @@ func (r *RedisCache) GetFlatsByHouseID(houseId int64, userType string) ([]byte, 
 		slog.Error("Failed to get result from the cache request", "error", err)
 		return nil, err
 	}
-
-	// var flats []models.Flat
-	// if err := json.Unmarshal([]byte(data), &flats); err != nil {
-	// 	slog.Error("Failed to unmarshal flats data", "key", keyRequest, "error", err)
-	// 	return nil, err
-	// }
 
 	slog.Info(`Successfully get flats from cache`, `key`, keyRequest)
 

@@ -58,7 +58,7 @@ func TestGetFlatsInHouseHandler(t *testing.T) {
 		{
 			houseId:        3,
 			userType:       `client`,
-			expectedFlats:  []models.Flat{}, // Ожидается пустой список
+			expectedFlats:  []models.Flat{},
 			authorized:     true,
 			expectCacheHit: false,
 		},
@@ -71,7 +71,7 @@ func TestGetFlatsInHouseHandler(t *testing.T) {
 				{Id: 17, HouseId: 300, Price: 450000, Rooms: 8, Num: 35, Status: "created", ModeratorId: 55},
 			},
 			authorized:     true,
-			expectCacheHit: false, // Кэш будет пропущен, так как данные устарели
+			expectCacheHit: false,
 		},
 	}
 
@@ -80,7 +80,6 @@ func TestGetFlatsInHouseHandler(t *testing.T) {
 			mockDB := new(mocks.Database)
 			mockCache := new(mocks.Cache)
 
-			// Подготовка моков в зависимости от сценария
 			if tc.expectCacheHit {
 				cachedData, _ := json.Marshal(tc.expectedFlats)
 				mockCache.On("GetFlatsByHouseID", tc.houseId, tc.userType).Return(cachedData, nil).Once()
@@ -98,7 +97,6 @@ func TestGetFlatsInHouseHandler(t *testing.T) {
 			assert.NoError(t, err)
 			req.Header.Set("Authorization", token)
 
-			// Запрос списка квартир
 			rr := httptest.NewRecorder()
 			handler := New(mockDB, mockCache)
 			handler.ServeHTTP(rr, req)
@@ -180,10 +178,8 @@ func TestFlatCreateHandler(t *testing.T) {
 			mockDB := new(mocks.Database)
 			mockCache := new(mocks.Cache)
 
-			// Подготовка моков
 			mockDB.On("CreateFlat", tc.inputFlat).Return(tc.expectedFlat, nil).Once()
 
-			// Очищение кеша, если статус квартиры "approved"
 			mockCache.On("DeleteFlatsByHouseId", tc.inputFlat.HouseId, "moderator").Once()
 			if tc.expectedFlat.Status == "approved" {
 				mockCache.On("DeleteFlatsByHouseId", tc.inputFlat.HouseId, "client").Once()
@@ -285,7 +281,6 @@ func TestHouseCreateHandler(t *testing.T) {
 			mockDB := new(mocks.Database)
 			mockCache := new(mocks.Cache)
 
-			// Настройка мока базы данных в зависимости от сценария
 			if tc.expectedCode == http.StatusOK {
 				mockDB.On("CreateHouse", tc.inputHouse).Return(tc.expectedHouse, nil).Once()
 			} else if tc.expectedCode == http.StatusInternalServerError {
@@ -392,7 +387,6 @@ func TestFlatUpdateHandler(t *testing.T) {
 			mockDB := new(mocks.Database)
 			mockCache := new(mocks.Cache)
 
-			// Подготовка моков в зависимости от сценария
 			if tc.expectedCode == http.StatusOK {
 				mockDB.On("UpdateFlat", tc.inputFlat).Return(tc.updatedFlat, nil).Once()
 				if tc.expectCacheClear {

@@ -106,14 +106,12 @@ func TestGetFlats(t *testing.T) {
 			}
 			defer cache.Client.Close()
 
-			// Заранее сохраняем данные в кеш для теста с кэшированием
 			if tc.expectCacheHit {
 				cachedData, _ := json.Marshal(tc.expectedFlats)
 				cacheKey := fmt.Sprintf("houseID:%d,userType:%s", tc.houseId, tc.userType)
 				cache.Client.Set(context.Background(), cacheKey, cachedData, 0)
 			}
 
-			// Получаем токен, если пользователь авторизован
 			var token string
 			if tc.authorized {
 				token, err = router.PerformLogin(tc.userType)
@@ -133,7 +131,6 @@ func TestGetFlats(t *testing.T) {
 
 			assert.Equal(t, tc.expectedCode, rr.Code)
 
-			// Если запрос успешен, проверяем тело ответа
 			if tc.expectedCode == http.StatusOK {
 				assert.NotEmpty(t, rr.Body.Bytes(), "Response body should not be empty")
 
@@ -143,7 +140,6 @@ func TestGetFlats(t *testing.T) {
 				assert.Equal(t, tc.expectedFlats, flats)
 			}
 
-			// Проверка кеша
 			if tc.expectCacheData {
 				cacheKey := fmt.Sprintf("houseID:%d,userType:%s", tc.houseId, tc.userType)
 				cachedData, err := cache.Client.Get(context.Background(), cacheKey).Result()
@@ -234,10 +230,9 @@ func TestFlatCreateHandler(t *testing.T) {
 				}
 			}
 
-			// Сериализация структуры inputFlat в JSON
 			body, err := json.Marshal(tc.inputFlat)
 			if tc.name == "Invalid JSON" {
-				body = []byte(`{"invalid_json"`) // Некорректный JSON
+				body = []byte(`{"invalid_json"`)
 			}
 			assert.NoError(t, err)
 
@@ -262,17 +257,16 @@ func TestFlatCreateHandler(t *testing.T) {
 				assert.Equal(t, tc.inputFlat.Num, createdFlat.Num)
 			}
 
-			// Проверка, что кеш был очищен при успешном создании
 			if tc.expectCacheClear {
 				cacheKeyModerator := fmt.Sprintf("houseID:%d,userType:moderator", tc.inputFlat.HouseId)
 				cachedData, err := cache.Client.Get(context.Background(), cacheKeyModerator).Result()
-				assert.Error(t, err) // Ошибка должна быть, так как ключ должен быть удален
+				assert.Error(t, err)
 				assert.Empty(t, cachedData)
 
 				if tc.inputFlat.Status == "approved" {
 					cacheKeyClient := fmt.Sprintf("houseID:%d,userType:client", tc.inputFlat.HouseId)
 					cachedData, err = cache.Client.Get(context.Background(), cacheKeyClient).Result()
-					assert.Error(t, err) // Ошибка должна быть, так как ключ должен быть удален
+					assert.Error(t, err)
 					assert.Empty(t, cachedData)
 				}
 			}
@@ -348,7 +342,6 @@ func TestHouseCreateHandler(t *testing.T) {
 			}
 			defer db.Db.Close()
 
-			// Получаем токен, если пользователь авторизован
 			var token string
 			if tc.authorized {
 				token, err = router.PerformLogin(tc.userType)
@@ -357,10 +350,9 @@ func TestHouseCreateHandler(t *testing.T) {
 				}
 			}
 
-			// Подготовка тела запроса
 			body, err := json.Marshal(tc.inputHouse)
 			if tc.name == "Invalid JSON" {
-				body = []byte(`{"invalid_json"`) // Некорректный JSON
+				body = []byte(`{"invalid_json"`)
 			}
 			assert.NoError(t, err)
 
@@ -375,7 +367,6 @@ func TestHouseCreateHandler(t *testing.T) {
 
 			assert.Equal(t, tc.expectedCode, rr.Code)
 
-			// Если запрос успешен, проверяем тело ответа
 			if tc.expectedCode == http.StatusOK {
 				var createdHouse models.House
 				err = json.Unmarshal(rr.Body.Bytes(), &createdHouse)
@@ -474,7 +465,7 @@ func TestFlatUpdateHandler(t *testing.T) {
 			expectedFlat:     models.Flat{},
 			expectCacheClear: false,
 		},
-		// Тест 5: Успешная смена статуса квартиры на "declined"
+		// Тест 7: Успешная смена статуса квартиры на "declined"
 		{
 			name: "Changing status to “declined”",
 			inputFlat: models.Flat{
@@ -504,7 +495,6 @@ func TestFlatUpdateHandler(t *testing.T) {
 			}
 			defer cache.Client.Close()
 
-			// Получаем токен, если пользователь авторизован
 			var token string
 			if tc.authorized {
 				token, err = router.PerformLogin(tc.userType)
@@ -513,10 +503,9 @@ func TestFlatUpdateHandler(t *testing.T) {
 				}
 			}
 
-			// Подготовка тела запроса
 			body, err := json.Marshal(tc.inputFlat)
 			if tc.name == "Invalid JSON" {
-				body = []byte(`{"invalid_json"`) // Некорректный JSON
+				body = []byte(`{"invalid_json"`)
 			}
 			assert.NoError(t, err)
 
@@ -531,7 +520,6 @@ func TestFlatUpdateHandler(t *testing.T) {
 
 			assert.Equal(t, tc.expectedCode, rr.Code)
 
-			// Если запрос успешен, проверяем тело ответа
 			if tc.expectedCode == http.StatusOK {
 				var updatedFlat models.Flat
 				err = json.Unmarshal(rr.Body.Bytes(), &updatedFlat)
@@ -539,17 +527,16 @@ func TestFlatUpdateHandler(t *testing.T) {
 				assert.Equal(t, tc.expectedFlat, updatedFlat)
 			}
 
-			// Проверка, что кеш был очищен при успешном создании
 			if tc.expectCacheClear {
 				cacheKeyModerator := fmt.Sprintf("houseID:%d,userType:moderator", tc.inputFlat.HouseId)
 				cachedData, err := cache.Client.Get(context.Background(), cacheKeyModerator).Result()
-				assert.Error(t, err) // Ошибка должна быть, так как ключ должен быть удален
+				assert.Error(t, err)
 				assert.Empty(t, cachedData)
 
 				if tc.inputFlat.Status == "approved" {
 					cacheKeyClient := fmt.Sprintf("houseID:%d,userType:client", tc.inputFlat.HouseId)
 					cachedData, err = cache.Client.Get(context.Background(), cacheKeyClient).Result()
-					assert.Error(t, err) // Ошибка должна быть, так как ключ должен быть удален
+					assert.Error(t, err)
 					assert.Empty(t, cachedData)
 				}
 			}
