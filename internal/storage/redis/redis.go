@@ -51,7 +51,7 @@ func (r *RedisCache) PutFlatsByHouseID(flats []models.Flat, houseId int64, userT
 	jsonFlats, err := json.Marshal(flats)
 
 	if err != nil {
-		slog.Error("Failed to marshal flats", "error", err)
+		slog.Error("Failed to marshal flats", slog.Any("err", err))
 		return err
 	}
 
@@ -59,7 +59,7 @@ func (r *RedisCache) PutFlatsByHouseID(flats []models.Flat, houseId int64, userT
 	request := r.Client.Set(ctx, keyRequest, jsonFlats, 5*time.Minute)
 
 	if err := request.Err(); err != nil {
-		slog.Error("Failed to set flats in cache", "error", err)
+		slog.Error("Failed to set flats in cache", slog.Any("err", err))
 		return err
 	}
 
@@ -74,13 +74,13 @@ func (r *RedisCache) GetFlatsByHouseID(houseId int64, userType string) ([]byte, 
 	request := r.Client.Get(ctx, keyRequest)
 
 	if err := request.Err(); err != nil {
-		slog.Error("Failed to get request from the cache", "error", err)
+		slog.Error("Failed to get request from the cache", slog.Any("err", err))
 		return nil, err
 	}
 
 	data, err := request.Result()
 	if err != nil {
-		slog.Error("Failed to get result from the cache request", "error", err)
+		slog.Error("Failed to get result from the cache request", slog.Any("err", err))
 		return nil, err
 	}
 
@@ -94,7 +94,7 @@ func (r *RedisCache) DeleteFlatsByHouseId(houseId int64, userType string) {
 	key := fmt.Sprintf(`houseID:%d,userType:%s`, houseId, userType)
 
 	if err := r.Client.Del(ctx, key).Err(); err != nil {
-		slog.Info("Error deleting key:", err)
+		slog.Info("Error deleting key:", slog.Any("err", err))
 	} else {
 		slog.Info("Key deleting successfully")
 	}

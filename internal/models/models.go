@@ -7,7 +7,8 @@ type AuthorizationToken struct {
 }
 
 type CustomClaims struct {
-	Type string
+	Type   string
+	UserId string
 	jwt.RegisteredClaims
 }
 
@@ -28,4 +29,11 @@ type Flat struct {
 	Status      string `json:"status"`
 	Num         int    `json:"flat_num"`
 	ModeratorId int    `json:"moderator_id"`
+}
+
+type User struct {
+	Id       string `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	UserType string `json:"user_type"`
 }

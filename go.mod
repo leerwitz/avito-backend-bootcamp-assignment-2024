@@ -19,5 +19,6 @@ require (
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/redis/go-redis/v9 v9.6.1
 	github.com/rs/cors v1.11.0 // indirect
+	golang.org/x/crypto v0.26.0
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
 )

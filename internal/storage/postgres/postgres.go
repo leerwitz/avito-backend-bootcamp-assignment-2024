@@ -214,3 +214,19 @@ func (storage *Storage) UpdateFlat(flat models.Flat) (models.Flat, error) {
 
 	return flat, nil
 }
+
+func (storage *Storage) CreateUser(user models.User) (models.User, error) {
+	query := `INSERT INTO users (email, password_hash, user_type) 
+		VALUES($1, $2, $3) RETURNING id`
+	err := storage.Db.QueryRow(query, user.Email, user.Password, user.UserType).Scan(&user.Id)
+
+	return user, err
+}
+
+func (storage *Storage) GetUserById(id string) (models.User, error) {
+	query := `SELECT password_hash, user_type, email FROM users WHERE id = $1`
+	user := models.User{Id: id}
+	err := storage.Db.QueryRow(query, id).Scan(&user.Password, &user.UserType, &user.Email)
+
+	return user, err
+}

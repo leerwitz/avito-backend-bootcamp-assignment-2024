@@ -25,6 +25,14 @@ CREATE TABLE IF NOT EXISTS flat (
     CONSTRAINT unique_house_flat UNIQUE (house_id, flat_num)
 );
 
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    user_type VARCHAR(50) NOT NULL CHECK (user_type IN ('client', 'moderator'))
+);
+
+
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'idx_house_id' AND relkind = 'i') THEN

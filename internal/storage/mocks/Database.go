@@ -69,6 +69,34 @@ func (_m *Database) CreateHouse(house models.House) (models.House, error) {
 	return r0, r1
 }
 
+// CreateUser provides a mock function with given fields: user
+func (_m *Database) CreateUser(user models.User) (models.User, error) {
+	ret := _m.Called(user)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateUser")
+	}
+
+	var r0 models.User
+	var r1 error
+	if rf, ok := ret.Get(0).(func(models.User) (models.User, error)); ok {
+		return rf(user)
+	}
+	if rf, ok := ret.Get(0).(func(models.User) models.User); ok {
+		r0 = rf(user)
+	} else {
+		r0 = ret.Get(0).(models.User)
+	}
+
+	if rf, ok := ret.Get(1).(func(models.User) error); ok {
+		r1 = rf(user)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetFlatsByHouseID provides a mock function with given fields: houseId, userType
 func (_m *Database) GetFlatsByHouseID(houseId int64, userType string) ([]models.Flat, error) {
 	ret := _m.Called(houseId, userType)
@@ -92,6 +120,34 @@ func (_m *Database) GetFlatsByHouseID(houseId int64, userType string) ([]models.
 
 	if rf, ok := ret.Get(1).(func(int64, string) error); ok {
 		r1 = rf(houseId, userType)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetUserById provides a mock function with given fields: id
+func (_m *Database) GetUserById(id string) (models.User, error) {
+	ret := _m.Called(id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserById")
+	}
+
+	var r0 models.User
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (models.User, error)); ok {
+		return rf(id)
+	}
+	if rf, ok := ret.Get(0).(func(string) models.User); ok {
+		r0 = rf(id)
+	} else {
+		r0 = ret.Get(0).(models.User)
+	}
+
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(id)
 	} else {
 		r1 = ret.Error(1)
 	}

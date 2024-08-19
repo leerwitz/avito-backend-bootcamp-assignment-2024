@@ -11,6 +11,8 @@ type Database interface {
 	UpdateAtHouseLastFlatTime(houseId int64) error
 	CreateHouse(house models.House) (models.House, error)
 	UpdateFlat(flat models.Flat) (models.Flat, error)
+	CreateUser(user models.User) (models.User, error)
+	GetUserById(id string) (models.User, error)
 }
 
 //go:generate go run github.com/vektra/mockery/v2@v2.44.2 --name=Cache
