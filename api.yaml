@@ -121,13 +121,6 @@ paths:
                   $ref: '#/components/schemas/Year'
                 developer:
                   $ref: '#/components/schemas/Developer'
-      parameters:
-        - name: Authorization
-          in: header
-          schema:
-            type: string
-          required: true
-          example: token_example
       responses:
         '200':
           description: Успешно создан дом
@@ -156,12 +149,6 @@ paths:
             $ref: '#/components/schemas/HouseId'
           required: true
           in: path
-        - name: Authorization
-          in: header
-          schema:
-            type: string
-          required: true
-          example: token_example
       responses:
         '200':
           description: Успешно получены квартиры в доме
@@ -247,13 +234,6 @@ paths:
                   description: Номер квартиры
                   example: 101
                   minimum: 1
-      parameters:
-        - name: Authorization
-          in: header
-          schema:
-            type: string
-          required: true
-          example: token_example
       responses:
         '200':
           description: Успешно создана квартира
@@ -292,13 +272,6 @@ paths:
                   type: integer
                   description: Идентификатор модератора, обновляющего квартиру
                   example: 12345
-      parameters:
-        - name: Authorization
-          in: header
-          schema:
-            type: string
-          required: true
-          example: token_example
       responses:
         '200':
           description: Успешно обновлена квартира
